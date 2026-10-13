@@ -1,0 +1,6 @@
+goal pairs (train/test): 235 57
+H actions: 4
+dyn trained (train pairs only).
+test goals: 57
+plan RMSE (normalized chunks): {'ACT_space_decoder': 0.2498, 'DINO_space_decoder': 0.335, 'world_model_planned': 1.4672, 'mean_chunk_baseline': 0.9643}
+saved results_c.json

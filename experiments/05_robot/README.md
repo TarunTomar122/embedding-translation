@@ -80,3 +80,32 @@ DYLD_LIBRARY_PATH=/opt/homebrew/opt/ffmpeg@7/lib ./env/bin/python extract.py   #
 
 Files: `extract.py` (LeRobotDataset → corpus), `dino_extract.py`, `run.py`, `run_b.py`,
 `results/{corpus,act,dino,stitch,stitch_b}.pt`, `results/results{,_b}.json`.
+
+## Exp06 — does the world model help ACT act? (`run_c.py`)
+
+Offline planning test on 57 unseen goal states (goal = the latent the demo actually reached
+4 sampled frames later. Plan candidates scored by rolling the (stitched) DINO dynamics model
+forward from the current latent; scored against ground-truth executed chunks (RMSE on
+state-normalized 4×14-d actions):
+
+| Plan | RMSE |
+|---|---|
+| ACT's own latent → chunk decoder (ridge) | **0.250** |
+| DINO latent → chunk decoder (ridge) | 0.335 |
+| mean train chunk | 0.964 |
+| world-model planning over a state-conditioned candidate bank | 1.34 |
+| world-model planning over demonstrator+jitter bank | 1.47 |
+
+**The world loses.** So we asked why, with an oracle-in-bank diagnostic: when the TRUE
+action chunk is among 201 candidates, the rollout cost ranks it on average **94.7 / 201**
+(≈ chance 100); direct comparison scores 1.0 by construction. Mechanism: the dynamics
+predictor maps different chunks to nearby latent futures — its 0.92 one-step cosine
+accuracy lives in continuous latent similarity, not in *chunk-level discrimination*.
+Rollout noise compounds; the discriminative signal that does come through the seam is in
+the objects (Exp05b), not in ranking futures.
+
+**Honest Exp06 verdict: at this laptop scale, the stitched world model does not improve
+action selection over direct reading of the model's own latents.** Retry-worthy with:
+(a) full 20k-frame corpus instead of our 3k subsample, (b) a generative chunk head
+(diffusion, as in ACT/Diffusion-Policy proper) instead of a nearest-neighbor bank,
+(c) far-horizon goals where Exp05b showed the seam is strongest.

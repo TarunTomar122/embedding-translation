@@ -138,3 +138,16 @@ beyond static alignment. (Methodology note: the first pass of Exp05 scored the r
 ≈ 0.000 and reported "pictures align, physics doesn't"; that number came from computing deltas
 on *raw* unwhitened latents. Corrected above; the corrected version is more nuanced and
 more interesting.)
+
+## Exp06 — planning through the stitch (`experiments/05_robot/run_c.py`)
+
+Does the stitched world model improve ACT's action selection? Offline test, 57 unseen goal
+states, score = RMSE to the executed ground-truth chunk: ACT's own latent→chunk readout 0.25
+(DINO readout 0.34, mean-chunk baseline 0.96) vs. world-model planning over state-conditioned
+or demonstrator+jitter candidate banks 1.34–1.47. Oracle diagnostic: the TRUE chunk inserted
+into a 201-candidate bank ranks 94.7/201 under rollout cost — chance level. The latent
+dynamics predictor predicts *latents* well (0.92 cos one-step) but does not discriminate
+*chunks*: different chunks roll to nearby futures, and rollout noise compounds over even
+4 steps. Verdict: at 3k-frames-of-aloha scale, the stitched world model does not beat direct
+policy decoding; realism ceiling, not concept ceiling. Retry candidates listed in the
+experiment README.

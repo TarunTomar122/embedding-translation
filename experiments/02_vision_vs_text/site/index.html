@@ -318,6 +318,33 @@ came from computing deltas on raw, unwhitened latents — a shared rotation can'
 on them. The whitened numbers above are the honest ones, and they replaced a punchy line with
 a subtler and better story.)</em></p>
 
+<h2 id="exp6">Experiment 6 — the payoff test: does the world model actually help?</h2>
+
+<p>If stitching works, a world model should improve the robot's <em>planning</em>. So on 57
+never-visited goal states we let three planners compete: read a plan straight out of ACT's
+own latent (the policy it was trained for), read one out of the DINO latent, or
+<em>plan like an agent</em> — roll the stitched world model forward over a bank of candidate
+action chunks and pick the one whose predicted future best matches the goal.</p>
+
+<p>Measured as error against the actions the human demonstrator actually executed
+(lower is better): ACT readout <strong>0.25</strong>. DINO readout 0.34. Average-chunk
+baseline 0.96. World-model planning: <strong>1.35–1.47 — it loses to predicting the
+average.</strong></p>
+
+<p>The diagnostic that explains why is the best part: we planted the <em>true</em> executed
+chunk among 201 candidates and let the world model's rollout cost pick. It ranks the true
+chunk at <strong>94.7 / 201</strong> — exactly chance. The world model predicts the next
+latent at 0.92 cosine, but it maps many different action chunks to nearly the same future.
+It knows <em>where the world is going</em> plausibly, it doesn't yet know <em>which command
+put it there</em> — and after 4 rollout steps its errors compound past the signal.</p>
+
+<p>So the mini-program earned a clean negative with a mechanism attached: at laptop scale
+you can stitch two robot models' <em>views</em>, partially transfer their <em>dynamics</em>
+through a static-fitted nonlinear map, and still not get free <em>planning</em>. The gap
+between "predicts the next picture" and "picks the right action" is real, it is measurable,
+and it did not close with 3,000 frames and a small MLP. Scaling notes (full corpus,
+diffusion chunk heads, long-horizon goals) are in the experiment README.</p>
+
 <h2 id="repro">Reproduce it yourself</h2>
 
 <p>Everything runs on a laptop Apple-Silicon GPU (<code>mps</code>) in under an hour.

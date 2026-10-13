@@ -1,0 +1,9 @@
+{
+  "ACT_decoded_plan_R2": null,
+  "action_chunk_RMSE_norm": {
+    "ACT_space_decoder": 0.24976360797515093,
+    "DINO_space_decoder": 0.33498154512857126,
+    "world_model_planned": 1.4672221089304114,
+    "mean_chunk_baseline": 0.9643014781662473
+  }
+}
