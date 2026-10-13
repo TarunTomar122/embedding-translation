@@ -111,3 +111,20 @@ My standalone evaluation script initially used a hand-rolled rank formula
 it made every variant collapse to chance. The correct formulation from `loop.py` uses
 `(o == arange)[:, 1]` on the argsort directly. All Exp-04 numbers above are with the
 CORRECT metric; the bug is documented so it isn't repeated.
+
+## Exp05 — policy ↔ world-model stitching (`experiments/05_robot/`)
+
+First excursion into robotics: does one static-frame Procrustes rotation let a pretrained
+ACT policy (aloha-sim, 51M) and an independently-trained JEPA-lite latent world model
+(DINOv2-small + dynamics head) share their *dynamics*?
+
+**Result: no — first clean negative in the series.** Static frame alignment works (R@1 0.52
+on unseen episodes). Rotated motion-delta cosine at horizons 1–20 is ≈ 0.00 (random-rotation
+control −0.002). The DINO dynamics predictor itself is excellent (0.918 cos to true
+next-latent), but its forecast agrees with ACT's actual latent change only 0.074 through
+the seam. Action-chunk readouts: ACT 0.93 / DINO 0.88 R², zero-shot through the stitch 0.89.
+
+Interpretation: what Procrustes recovers is *object-level* shared structure (the Platonic
+hypothesis in the linear regime). Temporal-dynamical structure is exactly what
+prediction-training buys and cannot be linearly re-derived from static geometry — the
+strongest support yet, inside this project, for the JEPA research programme's core claim.

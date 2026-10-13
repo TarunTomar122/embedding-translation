@@ -1,0 +1,18 @@
+objc[53143]: Class AVFFrameReceiver is implemented in both /Users/tarat/Documents/personal/embedding spaces/experiments/05_robot/env/lib/python3.12/site-packages/av/.dylibs/libavdevice.63.1.102.dylib (0x116d3c3a8) and /opt/homebrew/Cellar/ffmpeg@7/7.1.5_3/lib/libavdevice.61.3.100.dylib (0x1296d8328). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+objc[53143]: Class AVFAudioReceiver is implemented in both /Users/tarat/Documents/personal/embedding spaces/experiments/05_robot/env/lib/python3.12/site-packages/av/.dylibs/libavdevice.63.1.102.dylib (0x116d3c3f8) and /opt/homebrew/Cellar/ffmpeg@7/7.1.5_3/lib/libavdevice.61.3.100.dylib (0x1296d8378). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+0 / 3000
+200 / 3000
+400 / 3000
+600 / 3000
+800 / 3000
+1000 / 3000
+1200 / 3000
+1400 / 3000
+1600 / 3000
+1800 / 3000
+2000 / 3000
+2200 / 3000
+2400 / 3000
+2600 / 3000
+2800 / 3000
+saved /Users/tarat/Documents/personal/embedding spaces/experiments/05_robot/results/corpus.pt 2983 frames

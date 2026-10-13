@@ -67,6 +67,8 @@ open site/index.html                   # the story version of all this
   asks whether *small* ones do too (they do, but need the extra whitening).
 - Relative Representations (Moschella et al. 2022) — "anchor spaces" instead of joint modes.
 - Representation Alignment Rests on Linear Structure (2026) — the linear-bridge argument.
+- ACT / policy stitching (Zhao et al. 2023; exp05) — deployed offline: semantic alignment
+  holds; dynamics does not, without being fitted on dynamics.
 
 ## Traps encountered (documented honestly)
 
@@ -80,3 +82,7 @@ open site/index.html                   # the story version of all this
 - 217 rounds on record, 0.243 → 0.560 logged stepwise.
 - Ceilings measured, both confirmed independently.
 - Results and traps all written into `RESULTS.md`.
+- **Exp05 (`experiments/05_robot/`)**: stitched a pretrained ACT robot policy with a self-trained
+  latent world model on aloha-sim rollouts. Static frames align (R@1 0.52), **dynamics does not**
+  (rotated motion-delta cos ≈ 0.0) — object structure is shared encoders-to-encoders, but
+  temporal structure is what training-for-prediction buys you.
