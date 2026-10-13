@@ -238,6 +238,21 @@ see is the structure, not the pixels.</p>
 <img src="img/align.png" alt="before/after alignment">
 <img src="img/ranks.png" alt="rank histograms">
 
+<h2 id="new">Two follow-up experiments (same day)</h2>
+
+<div class="two-col"><div><strong>Exp 03 — the "plug-in" test, headline result</strong><br>
+Rotate DINOv2 (52M, has never seen text) into CLIP's image space, then classify CIFAR-10
+with CLIP's <em>frozen text head</em> using only prompts like "a photo of a cat.["<br><strong>Result: 88.8% vs CLIP's own 89.1%.<br>
+Random rotation control: 10.6% (chance 10%).</strong><br>
+Translation ≈ co-training, at zero-shot classification.</div>
+<div><strong>Exp 04 — is it a fluke pair?</strong><br>
+Same recipe on 3 other image/text pairs:<br>
+CLIP-B/16 ↔ mpnet: 0.583<br>
+SigLIP ↔ mpnet: <strong>0.654</strong><br>
+CLIP-B/32 ↔ MiniLM: 0.496<br>
+Phenomenon is pair-general; jointly-trained-earlier models (SigLIP) share the most structure,<br>
+just as the Platonic Representation Hypothesis predicts.</div></div>
+
 <h2>Why the rest is data, not models</h2>
 <p>Two independent ceilings measured during round 0:</p>
 <ol>
