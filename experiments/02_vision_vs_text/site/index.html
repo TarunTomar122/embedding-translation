@@ -261,6 +261,50 @@ function draw2(){
 R.addEventListener("input", draw2); draw2();
 </script>
 
+<h2 id="exp5">Experiment 5 — now with robots: check the physics</h2>
+
+<p>Every result so far compares <em>static pictures</em>: images, captions, class labels.
+But robots need their model to know <em>how the world moves</em>. So we stitched two machines
+that were trained with completely different objectives on the same rollouts:</p>
+
+<ul>
+<li><strong>M1 = ACT</strong> — a real pretrained robot policy (the Action Chunking
+Transformer of Zhao et al., 51M parameters, trained to move two arms in the aloha
+cube-transfer simulation). This is not a toy we built; it's the checkpoint that ships with
+LeRobot. Its latent is the mean of its transformer-encoder tokens.</li>
+<li><strong>M2 = our own latent world model</strong> — DINOv2 look at each frame plus a small
+predictor that learns <code>z_next = f(z, action)</code>, JEPA-style. Trained only for
+prediction, never for similarity to ACT.</li>
+</ul>
+
+<p>Same recipe as always: whiten, then one Procrustes rotation fitted on <strong>static
+matched frames only</strong> — no motion supervision whatsoever went into the stitch.</p>
+
+<div class="pull">
+<p><strong>Result: images align, physics doesn't.</strong></p>
+<p>Static frame retrieval on never-aligned episodes: R@1 <strong>0.52</strong>, R@5
+<strong>0.72</strong> — right in line with our CLIP↔text translations.</p>
+<p>But measure whether the two <em>motion</em> directions agree — take the latent change
+from frame t to frame t+h in each machine, move ACT's through the rotation, take the cosine
+of the two. Across horizons h = 1, 5, 10, 20 steps:
+<strong>0.003, −0.002, 0.009, 0.000</strong>. A random rotation scores −0.002.
+The seam carries the picture perfectly and the physics not at all.</p>
+</div>
+
+<p>Meanwhile the world model itself is excellent: its one-step forecast matches the true
+next latent at cosine <strong>0.92</strong> (control 0.03). So the physics exists and is
+learnable — it just isn't the <em>same</em> physics ACT carries, and no single static rotation
+bridges them. The forecast-the-world-model's direction only agrees with ACT's actual change
+at cosine 0.07 through the stitch.</p>
+
+<p>This is the first clean "no" in the series, and it's a sharpening of everything before:
+what Procrustes recovers is <strong>object-level shared structure</strong> (the Platonic
+hypothesis in linear form). The <em>temporal</em> structure — the part a robot needs — is
+exactly what prediction-training buys and exactly what you cannot re-derivate from
+static geometry. If the JEPA people are right that world models should be learned by
+predicting, this little experiment agrees with them: plugging one machine's face onto
+another machine gets you the picture, not the physics.</p>
+
 <h2 id="repro">Reproduce it yourself</h2>
 
 <p>Everything runs on a laptop Apple-Silicon GPU (<code>mps</code>) in under an hour.
@@ -275,6 +319,8 @@ cd experiments/02_vision_vs_text
 python extract.py --n 5000        # embed COCO with both towers
 python loop.py --count 200        # rerun the 217-round harness
 python run.py                     # (04_model_pairs) the multi-pair test
+# robot stitching (05_robot) - needs its own env, see its README
+cd ../05_robot && ./env/bin/python extract.py && ./env/bin/python run.py
 python run.py                     # (03_zerotransfer) the DINOv2 plug-in test</code></pre>
 
 <h2 id="rel">Related work & attribution</h2>
