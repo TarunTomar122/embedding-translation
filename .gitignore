@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pt
+*.pth
+HF_home/
+site/examples.pt
+site/texts.json
+site/examples.json
+.DS_Store

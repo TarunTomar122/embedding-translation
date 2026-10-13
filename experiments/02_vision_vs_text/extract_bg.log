@@ -1,0 +1,191 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/tarat/Documents/personal/embedding spaces/.venv, got /Users/tarat/Documents/personal/embedding spaces/experiments/02_vision_vs_text/../../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/tarat/Documents/personal/embedding spaces/.venv, got /Users/tarat/Documents/personal/embedding spaces/experiments/02_vision_vs_text/../../.venv
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+loading models...
+Loading weights:   0%|          | 0/200 [00:00<?, ?it/s]Loading weights: 100%|██████████| 200/200 [00:00<00:00, 31312.46it/s]
+[transformers] [1mCLIPVisionModelWithProjection LOAD REPORT[0m from: openai/clip-vit-base-patch32
+Key                                                          | Status     |  | 
+-------------------------------------------------------------+------------+--+-
+text_model.encoder.layers.{0...11}.layer_norm1.weight        | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.mlp.fc1.bias              | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.mlp.fc1.weight            | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.mlp.fc2.weight            | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.v_proj.weight   | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.q_proj.weight   | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.k_proj.bias     | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.q_proj.bias     | UNEXPECTED |  | 
+text_model.embeddings.token_embedding.weight                 | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.v_proj.bias     | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.mlp.fc2.bias              | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.k_proj.weight   | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.layer_norm2.weight        | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.layer_norm2.bias          | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.out_proj.bias   | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.layer_norm1.bias          | UNEXPECTED |  | 
+text_model.encoder.layers.{0...11}.self_attn.out_proj.weight | UNEXPECTED |  | 
+logit_scale                                                  | UNEXPECTED |  | 
+text_model.final_layer_norm.bias                             | UNEXPECTED |  | 
+text_projection.weight                                       | UNEXPECTED |  | 
+text_model.final_layer_norm.weight                           | UNEXPECTED |  | 
+text_model.embeddings.position_embedding.weight              | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 7086.37it/s]
+  32
+  64
+  96
+  128
+  160
+  192
+  224
+  256
+  288
+  320
+  352
+  384
+  416
+  448
+  480
+  512
+  544
+  576
+  608
+  640
+  672
+  704
+  736
+  768
+  800
+  832
+  864
+  896
+  928
+  960
+  992
+  1024
+  1056
+  1088
+  1120
+  1152
+  1184
+  1216
+  1248
+  1280
+  1312
+  1344
+  1376
+  1408
+  1440
+  1472
+  1504
+  1536
+  1568
+  1600
+  1632
+  1664
+  1696
+  1728
+  1760
+  1792
+  1824
+  1856
+  1888
+  1920
+  1952
+  1984
+  2016
+  2048
+  2080
+  2112
+  2144
+  2176
+  2208
+  2240
+  2272
+  2304
+  2336
+  2368
+  2400
+  2432
+  2464
+  2496
+  2528
+  2560
+  2592
+  2624
+  2656
+  2688
+  2720
+  2752
+  2784
+  2816
+  2848
+  2880
+  2912
+  2944
+  2976
+  3008
+  3040
+  3072
+  3104
+  3136
+  3168
+  3200
+  3232
+  3264
+  3296
+  3328
+  3360
+  3392
+  3424
+  3456
+  3488
+  3520
+  3552
+  3584
+  3616
+  3648
+  3680
+  3712
+  3744
+  3776
+  3808
+  3840
+  3872
+  3904
+  3936
+  3968
+  4000
+  4032
+  4064
+  4096
+  4128
+  4160
+  4192
+  4224
+  4256
+  4288
+  4320
+  4352
+  4384
+  4416
+  4448
+  4480
+  4512
+  4544
+  4576
+  4608
+  4640
+  4672
+  4704
+  4736
+  4768
+  4800
+  4832
+  4864
+  4896
+  4928
+  4960
+  4992
+saved: torch.Size([5000, 512]) torch.Size([5000, 384])

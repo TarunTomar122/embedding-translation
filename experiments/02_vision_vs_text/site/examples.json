@@ -1,0 +1,98 @@
+[
+ {
+  "i": 137,
+  "caps": [
+   "A man riding on the back of a motorcycle.",
+   "A man is sitting on a black motorcylce",
+   "A man sitting on a motorcycle in a yellow riding jacket.",
+   "A man sitting on a motorcycle on a sidewalk.",
+   "There is a man sitting on a motor cycle."
+  ],
+  "rank_mapA": 2,
+  "top3_mapA": [
+   [
+    3680,
+    0.4694475531578064
+   ],
+   [
+    898,
+    0.46934816241264343
+   ],
+   [
+    137,
+    0.46735823154449463
+   ]
+  ],
+  "true_sim": 0.46735823154449463,
+  "top3_texts": [
+   "A man standing with a yellow motorcycle in park",
+   "A person on a motor bike and a car on the street.",
+   "A man riding on the back of a motorcycle."
+  ],
+  "rank_text": "A man riding on the back of a motorcycle."
+ },
+ {
+  "i": 900,
+  "caps": [
+   "A women holding up a very large pair of scissors .",
+   "A woman is holding a giant pair of scissors.",
+   "a woman with eye glasses holding a giant pair od scissors",
+   "A lady holding a large pair of scissors.",
+   "A woman holds a giant pair of scissors."
+  ],
+  "rank_mapA": 7,
+  "top3_mapA": [
+   [
+    3683,
+    0.28168660402297974
+   ],
+   [
+    4556,
+    0.27654018998146057
+   ],
+   [
+    2961,
+    0.2539745569229126
+   ]
+  ],
+  "true_sim": 0.23636466264724731,
+  "top3_texts": [
+   "A very big teddy bear is next to a woman.",
+   "The reflection of a woman carrying a bag over each shoulder in a mirror.",
+   "A woman holding a frisbee next to a frisbee golf basket."
+  ],
+  "rank_text": "A women holding up a very large pair of scissors ."
+ },
+ {
+  "i": 2400,
+  "caps": [
+   "A man riding on the back of a motorcycle down a street.",
+   "A man is riding on a motor scooter across the blacktop.",
+   "There is a heavy set man that is riding a moped",
+   "A person on a motor bike on a street.",
+   "A man is riding a small motorcycle through the parking lot"
+  ],
+  "rank_mapA": 0,
+  "top3_mapA": [
+   [
+    2400,
+    0.5735573172569275
+   ],
+   [
+    4077,
+    0.5125448107719421
+   ],
+   [
+    2008,
+    0.484260618686676
+   ]
+  ],
+  "true_sim": 0.5735573172569275,
+  "top3_texts": [
+   "A man riding on the back of a motorcycle down a street.",
+   "Person driving a plated motorcycle on a track with people watching.",
+   "A man riding on the side of a motor bike."
+  ],
+  "rank_text": "A man riding on the back of a motorcycle down a street."
+ }
+]
