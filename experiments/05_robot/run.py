@@ -139,7 +139,7 @@ def dyntest(model_a, model_b, rotate=True):
         cos = torch.cosine_similarity(da, db)
         out[f"h{h}"] = cos.mean().item()
     return out
-res["deltas_rotated"] = dyntest(act, dino)
+res["deltas_rotated"] = dyntest(act_w, din_w)  # whitened (raw-latent version spuriously ≈ 0)
 # control: random rotation
 Rc = torch.randn(R.shape).float()
 def haar(r):
@@ -150,8 +150,10 @@ def haar(r):
 
 def dyntest_ctrl(model_a, model_b, Rr, times=20):
     out = {f"h{h}": [] for h in pairs_by_h}
+    model_a, model_b = model_a.float().to(DEV), model_b.float().to(DEV)
+    Rr2 = None
     for t in range(times):
-        Rr2 = haar(torch.randn(R.shape).float())
+        Rr2 = haar(torch.randn(R.shape).float()).to(DEV)
         d2 = {}
         for h, idx in pairs_by_h.items():
             da = (model_a[1:][idx] - model_a[:-1][idx]) @ Rr2
@@ -160,7 +162,9 @@ def dyntest_ctrl(model_a, model_b, Rr, times=20):
             d2[f"h{h}"] = torch.cosine_similarity(da, db).mean().item()
         for k in d2: out[k].append(d2[k])
     return {k: sum(v)/len(v) for k, v in out.items()}
-res["deltas_control"] = dyntest_ctrl(act, dino, None)
+res["deltas_control"] = dyntest_ctrl(act_w, din_w, None)
+# test-pair counts, so small-n horizons are visible in the table
+res["test_pair_counts"] = {str(h): int(len(v)) for h, v in pairs_by_h.items()}
 print("delta-cos rotated:", {k: round(v,4) for k,v in res['deltas_rotated'].items()}, flush=True)
 print("delta-cos control:", {k: round(v,4) for k,v in res['deltas_control'].items()}, flush=True)
 

@@ -114,17 +114,27 @@ CORRECT metric; the bug is documented so it isn't repeated.
 
 ## Exp05 — policy ↔ world-model stitching (`experiments/05_robot/`)
 
-First excursion into robotics: does one static-frame Procrustes rotation let a pretrained
-ACT policy (aloha-sim, 51M) and an independently-trained JEPA-lite latent world model
-(DINOv2-small + dynamics head) share their *dynamics*?
+Does one static-frame Procrustes rotation let a pretrained ACT policy (aloha-sim, 51M) and an
+independently-trained JEPA-lite latent world model (DINOv2-small + dynamics head) share their
+*dynamics*?
 
-**Result: no — first clean negative in the series.** Static frame alignment works (R@1 0.52
-on unseen episodes). Rotated motion-delta cosine at horizons 1–20 is ≈ 0.00 (random-rotation
-control −0.002). The DINO dynamics predictor itself is excellent (0.918 cos to true
-next-latent), but its forecast agrees with ACT's actual latent change only 0.074 through
-the seam. Action-chunk readouts: ACT 0.93 / DINO 0.88 R², zero-shot through the stitch 0.89.
+**Main (run.py):** static frame alignment works (R@1 0.52 on unseen episodes; R@5 0.72). Rotated
+motion-delta cosine on whitened latents: 0.058 / 0.218 / 0.309 at h = 1 / 5 / 10 (random-rotation
+control ≈ 0). The DINO dynamics predictor itself is excellent (0.918 cos to true next-latent vs
+0.029 control), but its forecast agrees with ACT's actual latent change only 0.074 through the
+seam. Action-chunk readouts: ACT 0.93 / DINO 0.88 R², zero-shot through the stitch 0.89.
 
-Interpretation: what Procrustes recovers is *object-level* shared structure (the Platonic
-hypothesis in the linear regime). Temporal-dynamical structure is exactly what
-prediction-training buys and cannot be linearly re-derived from static geometry — the
-strongest support yet, inside this project, for the JEPA research programme's core claim.
+**Stitch ablations (run_b.py, Exp05b):** a 2-layer MLP stitcher fitted on the same *static*
+frames nearly doubles the dynamics that cross (0.094 / 0.374 / 0.454 at h=1/5/10), while
+stitchers fitted on *motion deltas* directly FAIL (0.007–0.043, linear or MLP). Deltas are
+noisy and high-variance relative to static geometry; the physics that transfers is carried
+by the objects.
+
+**Reading:** object-level structure is shared encoders-to-encoders (Platonic, linear regime).
+Temporal structure is partially shared — increasingly so as deltas become quasi-positional —
+but one-step reaction dynamics are the least shared, prediction-training-specific part.
+First clean quantification inside the project of what JEPA-style predictive training buys
+beyond static alignment. (Methodology note: the first pass of Exp05 scored the rotated deltas
+≈ 0.000 and reported "pictures align, physics doesn't"; that number came from computing deltas
+on *raw* unwhitened latents. Corrected above; the corrected version is more nuanced and
+more interesting.)

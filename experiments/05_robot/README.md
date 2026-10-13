@@ -1,63 +1,69 @@
 # Exp05 — Stitching a robot policy with a latent world model
 
-University-grade question, small-scale test: **do a pretrained robot policy and an
-independently-trained latent world model share enough latent geometry that one rotation
-plugs them together?**
+The robotics-grade version of this project's core question: **do a pretrained robot policy
+and an independently-trained latent world model share enough latent geometry that one map
+plugs them together — and does the *physics* survive the seam?**
 
 ## The two machines
 
 | | Model | What it is | Latent |
 |---|---|---|---|
-| M1 | **ACT** (`lerobot/act_aloha_sim_transfer_cube_human`, 51M params) | Action Chunking Transformer (Zhao et al. 2023, arXiv:2304.13705) trained on aloha cube-transfer simulation: resnet18 visual backbone → 5-layer transformer encoder → CVAE decoder emitting 100-step action chunks | 512-d, mean over encoder tokens (zero-VAE-latent token + robot-state token + 300 camera patch tokens) |
-| M2 | **JEPA-lite** (self-trained) | DINOv2-small frame encoder (384-d CLS) + small MLP dynamics head `z_{t+1} = f(z_t, a_t)` trained on the rollouts with cosine+MSE, JEPA-style latent prediction | 384-d |
+| M1 | **ACT** (`lerobot/act_aloha_sim_transfer_cube_human`, 51M params) | Action Chunking Transformer (Zhao et al. 2023, arXiv:2304.13705), aloha cube-transfer simulation: resnet18 → 5-layer transformer encoder → CVAE decoder emitting 100-step action chunks | 512-d, mean over encoder tokens (zero-VAE-latent + robot-state + 300 camera patch tokens) |
+| M2 | **JEPA-lite** (self-trained) | DINOv2-small frame encoder (384-d CLS) + MLP dynamics head `z_{t+1} = f(z_t, a_t)`, cosine+MSE, latent prediction only | 384-d |
 
 Data: 2,983 aligned (frame, state, next-actions) tuples from 50 `lerobot/aloha_sim_transfer_cube_human`
-episodes, episode-level 80/20 split so the test set is whole episodes the models were never aligned on.
+episodes, episode-level 80/20 split. All whitening/ZCA eps=0.01, CPU (`eigh` trap).
 
-The one trick being tested: fit a **single Procrustes rotation on static matched frames only**
-(also ZCA-whiten eps=0.01 first, same recipe as exps 02–04). No dynamics supervision at all
-in the fit. Then ask how much *dynamics* comes across the seam.
-
-## Results
+## Main results (run.py)
 
 | Test | Number | Control | Verdict |
 |---|---|---|---|
-| Static-frame retrieval (test episodes), R@1 / R@5 | **0.521 / 0.724** | chance ≈ 0.001 | ✅ pictures agree |
-| Rotated motion-delta cosine, h = 1 / 5 / 10 / 20 steps | **0.003 / −0.002 / 0.009 / 0.000** | −0.002 (random rotation) | ❌ motion does not agree |
-| JEPA-lite dynamics quality, cos(predicted, true next latent) | **0.918** | 0.029 (random start state, same action) | world model itself is good |
-| Dynamics-predictor forecast vs ACT's actual latent change (cos) | **0.074** | ≈ 0 | weak physics agreement |
+| Static-frame retrieval (unseen episodes), R@1 / R@5 | **0.521 / 0.724** | chance ≈ 0.001 | pictures agree |
+| Rotated motion-delta cosine, whitened, h = 1 / 5 / 10 (20) steps | **0.058 / 0.218 / 0.309** (n=4) | −0.001 / −0.002 / 0.003 (random rotation) | some physics comes across, growing with horizon |
+| JEPA-lite dynamics quality, cos(predicted, true next latent) | **0.918** | 0.029 | the world model itself is good |
+| Dynamics forecast vs ACT's actual latent change, cos | **0.074** | ≈ 0 | weak stitching-level agreement |
 | Action-chunk readout R² (ridge, 12×14-d chunks) | ACT **0.93**, DINO **0.88** | — | both spaces carry action info |
-| Zero-shot: DINO's decoder applied to rotated ACT latents | **0.89** | random-rotation same-fit 0.93* | mild transfer through the stitch |
+| Zero-shot: DINO's decoder applied to rotated ACT latents | **0.89** | identity 0.93 | mild transfer through the stitch |
 
-\* The random-rotation "control" for readouts is weak by construction: an orthogonal rotation
-plus a refit decoder is exactly invariant, so R² stays identical — it only shows the decoder
-was refit, not that the mapping is good. The meaningful control is the DINO decoder transfer:
-0.89 with fitted rotation vs the ACT-native 0.93.
+## Exp05b — how far can the physics be pushed across? (`run_b.py`)
 
-## The headline
+Same data; four increasingly sophisticated stitches, all evaluated on unseen episodes
+(test pairs: 260 / 57 / 19 / 4 at h = 1 / 5 / 10 / 20 — h=20 is n-toy, ignore it):
 
-**Images align, physics doesn't.**
+| Stitch fitted with | h=1 | h=5 | h=10 |
+|---|---|---|---|
+| nothing (random rotation) | −0.001 | −0.002 | 0.004 |
+| static frames, linear Procrustes | 0.058 | 0.218 | 0.309 |
+| **motion deltas only, linear LS** | 0.007 | 0.034 | 0.036 |
+| static frames, 2-layer MLP, deltas via mapped frames | **0.094** | **0.374** | **0.454** |
+| **motion deltas only, MLP** | 0.011 | 0.041 | 0.043 |
 
-A rotation fitted purely on *what the world looks like* carries ACT's visual semantics into
-DINOv2 space almost as well as our CLIP↔MiniLM translations carried text
-(exp03 went further: it dropped zero-shot CIFAR-10 accuracy by only 0.2%).
-But ACT's *dynamics* — how its latent changes when the arms move — survives that same
-rotation essentially not at all (delta-cosine ≈ 0.00 at every horizon, same as a random
-rotation).
+Three honest findings:
 
-This is the first picture in our series where the answer is "no", and it sharpens what the
-earlier wins actually proved:
+1. **Static training does carry some dynamics.** The first pass of this experiment scored
+   rotated deltas ≈ 0.000 and read as "pictures align, physics doesn't". That was an
+   evaluation bug: deltas had been computed on *raw* (unwhitened) latents, where a shared
+   rotation can't act coherently. On whitened latents the static-fit map aligns motion
+   deltas at 0.22–0.31 cosine (h=5–10) — clearly above control, clearly below static retrieval.
+2. **A non-linear stitcher trained on the same static frames does better still** —
+   0.37/0.45 at h=5/10, roughly doubling the physics that crosses the seam. Same
+   supervision (static pairs only!), extra expressivity: the aligned directions live on a
+   slight bend, not a plane.
+3. **Fitting directly on motion deltas fails, both linear and MLP** (≈ 0.01–0.04, at or
+   barely above control). Deltas are noisy and high-variance relative to static geometry;
+   supervised least-squares on them fits noise. The dynamics info is carried by the
+   *objects*, not by regressing onto the motion directly.
 
-- Exp03/04 showed **object-level/semantic structure** is shared across independently trained encoders.
-- Exp05 shows **temporal-dynamical structure** is not — at least not linearly, and not
-  from a static-frame fit.
+## The headline, corrected
 
-Which is consistent with the JEPA literature's own claims (e.g. V-JEPA 2, arXiv:2506.09985):
-predictive world models are useful precisely because their latent *dynamics* are their
-product — that is the part that has to be learned by predicting, not recovered by rotating.
-
-So: plugging a pretrained policy's face onto an unused world model with one linear map
-gives you the picture, not the physics.
+**Pictures transfer better than physics — but physics partly survives, and the static-only
+recipe is enough to get a real chunk of it.** The alignment quality for *what the world looks
+like* (retrieval 0.52) is far ahead of *how the world moves* (delta-cos 0.09 at one step,
+converging toward ~0.45 as the delta becomes more "positional" at longer horizons). Long-horizon
+deltas are quasi-positional (state geometry), which is exactly why they align best — one-step
+reaction dynamics remain the least shared structure. This is, inside this project, the
+strongest evidence that JEPA-style predictive training encodes something that plain
+contrastive/static alignment does not expose linearly.
 
 ## Reproduce
 
@@ -68,8 +74,9 @@ uv pip install --python env/bin/python torch numpy transformers==4.56.2 "hugging
 brew install ffmpeg@7   # torchcodec needs FFmpeg ≤ 8 shared libs
 DYLD_LIBRARY_PATH=/opt/homebrew/opt/ffmpeg@7/lib ./env/bin/python extract.py   # ~10 min, 2.7 GB corpus
 ../../.venv/bin/python dino_extract.py                                        # DINOv2 latents
-./env/bin/python run.py                                                       # ~6 min on MPS
+./env/bin/python run.py                                                       # main stitch + metrics
+./env/bin/python run_b.py                                                     # stitch ablations (Exp05b)
 ```
 
-Files: `extract.py` (LeRobotDataset → corpus), `dino_extract.py`, `run.py` (latents + stitch + all
-metrics), `results/corpus.pt`, `results/{act,dino}.pt`, `results/results.json`.
+Files: `extract.py` (LeRobotDataset → corpus), `dino_extract.py`, `run.py`, `run_b.py`,
+`results/{corpus,act,dino,stitch,stitch_b}.pt`, `results/results{,_b}.json`.

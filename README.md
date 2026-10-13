@@ -83,6 +83,8 @@ open site/index.html                   # the story version of all this
 - Ceilings measured, both confirmed independently.
 - Results and traps all written into `RESULTS.md`.
 - **Exp05 (`experiments/05_robot/`)**: stitched a pretrained ACT robot policy with a self-trained
-  latent world model on aloha-sim rollouts. Static frames align (R@1 0.52), **dynamics does not**
-  (rotated motion-delta cos ≈ 0.0) — object structure is shared encoders-to-encoders, but
-  temporal structure is what training-for-prediction buys you.
+  latent world model on aloha-sim rollouts. Static frames align (R@1 0.52) and motion deltas
+  partly align through the same static-only stitch (cos 0.22–0.31 at h=5–10; 0.37–0.45 with a
+  non-linear stitcher) — but far less than the pictures do, and fitting a map on motion deltas
+  directly fails (≈0.01–0.04). Object structure is broadly shared; one-step reaction dynamics
+  are the least shared, prediction-training-specific part.
