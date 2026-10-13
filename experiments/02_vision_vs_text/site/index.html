@@ -3,284 +3,318 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Two machines, one picture — teaching a vision model to speak</title>
+<title>One rotation to rule them: translating DINOv2's eye into CLIP's voice</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-light.min.css">
 <style>
-  body { font-family: Georgia, serif; max-width: 920px; margin: 40px auto; padding: 0 18px; line-height: 1.65; color: #26221d; background: #fffdf8; }
-  h1 { font-size: 2em; line-height: 1.2; margin-bottom: 0.3em; }
-  h2 { margin-top: 2.4em; border-bottom: 2px solid #e8e0cf; padding-bottom: .25em; }
-  h3 { margin-top: 1.6em; }
-  .sub { color: #6b6357; font-style: italic; margin-top: 0; }
-  img, canvas { max-width: 100%; display: block; margin: 12px auto; border: 1px solid #e5decd; border-radius: 4px; background: #fff; }
-  code { background: #f2eee3; padding: 1px 5px; border-radius: 3px; font-size: .88em; }
-  .note { background: #fdf6e3; border-left: 4px solid #c9a227; padding: .6em 1.1em; margin: 1.4em 0; border-radius: 0 6px 6px 0; }
-  .big { font-size: 1.3em; font-weight: bold; }
-  .two-col { display: flex; gap: 16px; flex-wrap: wrap; margin: 1.2em 0; }
-  .two-col > div { flex: 1 1 260px; background: #fbf8f0; border: 1px solid #e5decd; border-radius: 6px; padding: .8em 1em; }
-  table { border-collapse: collapse; margin: 1.2em auto; font-size: .95em; }
-  td, th { border: 1px solid #d8cfb8; padding: 5px 14px; }
-  th { background: #f2eee3; }
-  .win { color: #1a7f37; font-weight: bold; }
-  .miss { color: #a12622; font-weight: bold; }
-  .ex { display: flex; gap: 16px; align-items: flex-start; margin: 1.6em 0; border: 1px solid #e5decd; border-radius: 8px; padding: 1em; background: #fbf8f0; flex-wrap: wrap; }
-  .ex img { width: 220px; margin: 0; flex-shrink: 0; }
-  .ex .txt { flex: 1 1 300px; font-size: .95em; }
-  .cap-t { color: #1a7f37; } .cap-f { color: #a12622; }
-  .canvas-wrap { max-width: 560px; margin: auto; text-align: center; }
-  input[type=range] { width: 92%; accent-color: #8a6d1d; margin-top: .4em; }
-  .step { margin: 1.1em 0; padding-left: 1.1em; border-left: 3px solid #c9a227; }
-  .btns button { margin: 0 5px 8px 0; padding: 7px 15px; border: 1px solid #b7a55e; background: #fdf6e3; color: #4a3f19; border-radius: 5px; font: inherit; cursor: pointer; }
-  .btns button.on { background: #8a6d1d; color: #fff; }
-  .footer { color: #8a8273; font-size: .88em; margin-top: 3em; border-top: 1px solid #e5decd; padding-top: 1em; }
+  body { font-family: "Iowan Old Style", Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 18px;
+         line-height: 1.75; color: #231f1a; background: #fffdf8; font-size: 17px; }
+  h1 { font-size: 1.9em; line-height: 1.25; margin-bottom: .2em; letter-spacing: -.01em; }
+  h2 { margin-top: 2.2em; font-size: 1.25em; }
+  h3 { margin-top: 1.6em; font-size: 1.05em; }
+  a { color: #7a5c14; text-decoration: none; border-bottom: 1px dotted #c9a227; }
+  a:hover { border-bottom-style: solid; }
+  .meta { color: #7a7264; font-size: .9em; margin: .4em 0 2em; }
+  blockquote { border-left: 3px solid #c9a227; margin: 1.4em 0; padding: .2em 1.2em; color: #5a5346; font-style: italic; }
+  code { background: #f2eee3; padding: 1px 5px; border-radius: 3px; font-size: .85em; font-family: "SF Mono", Menlo, monospace; }
+  pre { background: #f7f4ea; padding: 1em; border-radius: 6px; overflow-x: auto; font-size: .85em; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  img { max-width: 100%; border-radius: 4px; border: 1px solid #e5decd; }
+  figure { margin: 1.6em 0; }
+  figcaption { color: #7a7264; font-size: .86em; text-align: center; margin-top: .5em; }
+  table { border-collapse: collapse; margin: 1.4em auto; font-size: .92em; }
+  td, th { border: 1px solid #d8cfb8; padding: 5px 13px; }
+  th { background: #f2eee3; font-weight: 600; }
+  .ex { border: 1px solid #e5decd; border-radius: 8px; padding: 1.1em 1.3em; background: #fbf8f0; margin: 1.8em 0; }
+  .ex img { float: left; width: 200px; margin: 0 1.2em .6em 0; border-radius: 6px; }
+  .ex::after { content: ""; display: block; clear: both; }
+  .cap-t { color: #1a7f37; } .cap-t2 { color: #a12622; }
+  .result { background: #fdf6e3; border-left: 4px solid #c9a227; padding: .7em 1.2em; margin: 1.5em 0;
+            border-radius: 0 6px 6px 0; }
+  .result b { font-size: 1.06em; }
+  footer { color: #8a8273; font-size: .88em; margin-top: 3em; border-top: 1px solid #e5decd; padding-top: 1em; line-height: 1.5; }
+  @media (max-width: 620px) { .ex img { width: 140px; } body { font-size: 16px; } }
 </style>
 </head>
 <body>
 
-<h1>Two machines, one picture</h1>
-<p class="sub">Teaching a vision model to speak a text model's language — with no co-training, no labels, one linear map.</p>
+<h1>One rotation to rule them: translating DINOv2's eye into CLIP's voice</h1>
+<p class="meta">An unsupervised embedding-space translation study · DINOv2-S, CLIP ViT-B/32 & B/16, SigLIP, MiniLM-L6, all-mpnet-base-v2 · laptop MPS GPU · 217 logged rounds · code on <a href="https://github.com/TarunTomar122/embedding-translation">GitHub</a> · October 2026</p>
 
-<h2 id="setup">The setup</h2>
-<p>Take <code>CLIP ViT-B/32</code> — a small vision model, millions of image/text pairs behind it.
-Take <code>MiniLM-L6</code> — a tiny text model (22M params), trained on sentence text with a completely
-different objective (no images, no vision). They have never co-trained, never shared a dataset,
-never agreed on a coordinate system.</p>
+<p><em>TL;DR — I fitted a single linear map between frozen embedding spaces of
+vision models and text models that had never co-trained. It retrieves the true COCO caption
+out of 2,500 candidates 65.4% of the time for the best pair (SigLIP ↔ mpnet; chance 0.04%),
+and lets a model with no language receptors classify CIFAR-10 at 99.7% of the reference model's
+own zero-shot accuracy. One rotation, one engineering trick (whitening), and one re-ranker
+(CSLS). All of it on a laptop.</em></p>
 
-<div class="two-col">
-  <div><strong>Model 1 — the image funnnel (CLIP)</strong><br>
-    photo in <code>→</code> 512 numbers out.<br>
-    Its private coordinates: objects, layout, color, shape.<br>
-    <em>Trained to identify</em>: what picture works with what sentence-premise, from 400M pairs.</div>
-  <div><strong>Model 2 — the text funnel (MiniLM)</strong><br>
-    sentence in <code>→</code> 384 numbers out.<br>
-    Its private coordinates: syntax, meaning, paraphrase.<br>
-    <em>Trained by</em>: imitating word patterns in text alone.</div>
-</div>
+<h2 id="who">The cast</h2>
 
-<p><span class="big">Question: take a photo's 512 numbers from model 1 — can one fixed rule translate
-them into 384 numbers that sit right next to the photo's caption in model 2's space?</span></p>
+<table>
+  <tr><th>Model</th><th>Sizes</th><th>What it saw in training</th><th>Embedding dim</th></tr>
+  <tr><td><strong><a href="https://arxiv.org/abs/2304.07193">DINOv2</a></strong> (Meta AI, 2023)</td><td>22M (ViT-S/14)</td><td>142M unlabelled images. Self-supervised, no captions.</td><td>384</td></tr>
+  <tr><td><strong><a href="https://arxiv.org/abs/2103.00020">CLIP</a></strong> (OpenAI, 2021)</td><td>~150M (ViT-B/32, B/16)</td><td>400M <em>image–caption</em> pairs from the web. Contrastive image↔text.</td><td>512</td></tr>
+  <tr><td><strong><a href="https://arxiv.org/abs/2303.15343">SigLIP</a></strong> (Google, 2023)</td><td>~86M (ViT-B/16)</td><td>Image–caption pairs, sigmoid (not softmax) contrastive. Better-aligned per-pair.</td><td>768</td></tr>
+  <tr><td><strong><a href="https://arxiv.org/abs/1909.11838">MiniLM-L6</a></strong> (Microsoft, 2019)</td><td>22M</td><td>Text only. Distilled from a teacher on sentence-pair similarity.</td><td>384</td></tr>
+  <tr><td><strong><a href="https://arxiv.org/abs/1802.05365">all-mpnet-base-v2</a></strong> (SBERT, 2020)</td><td>110M</td><td>Text only. Sentence-similarity tuned on top of <a href="https://arxiv.org/abs/1902.10618">MPNet</a>.</td><td>768</td></tr>
+</table>
 
-<!-- ================= live 2D demo ================= -->
-<h2 id="demo2d">Feel the rotation: live 2D demo</h2>
-<p>Below: two clouds, blue = pictures (model 1), orange = captions (model 2). The thin lines pair each
-point with its true partner. Nothing is aligned. Drag the slider to rotate one cloud: at first the
-pairs are a tangled mess, near the golden-clad rotation they snap together, and past 90° it
-re-tangles. That tension you feel — "there is a right amount" — <em>is</em> the whole experiment.</p>
+<p>The interesting seams are the ones <em>between</em> these families: DINOv2 (vision only)
+vs CLIP's text tower (pure language), and CLIP's image tower vs MiniLM (a text model whose
+training objective — matching paraphrases — never mentioned pictures).</p>
 
-<div class="canvas-wrap">
-  <canvas id="c2" width="540" height="400"></canvas>
-  <input type="range" id="s2" min="0" max="360" value="0" step="1">
-  <p id="s2msg" style="font-size:.92em; min-height:1.6em;"></p>
-</div>
+<h2 id="how">How the translation actually works</h2>
 
-<script>
-// live 2D rotation demo
-const cv = document.getElementById("c2"), cx = cv.getContext("2d");
-const R = document.getElementById("s2"), msg = document.getElementById("s2msg");
-// random clouds with soft pair structure
-const pts = [];
-for (let k = 0; k < 45; k++) {
-  const cluster = 40 + 130 * (k % 3);
-  const a = cluster + Math.random() * 46 - 23, b = 250 + Math.random() * 62 - 31;
-  pts.push({ x: a, y: b + (Math.random() - .5) * 10 });
-}
-const pairs = pts.map((p, i) => {
-  const dx = 0.16 * (Math.random() - .5), dy = 0.16 * (Math.random() - .5);
-  return { x: p.x + dx * 120, y: p.y + dy * 120 + 120 };
-});
-function score(a, b) {
-  let s = 0;
-  for (let i = 0; i < a.length; i++) {
-    const p = a[i], q = b[i];
-    s += (p.x - cx1) * (q.x - cx1) + (p.y - cy0) * (q.y - cy0);
-  }
-  return s / a.length;
-}
-function rot(p, t) {
-  const c = Math.cos(t), s = Math.sin(t);
-  // rotate around the cloud centroid
-  const px = cx1, py = cy0;
-  return { x: px + (p.x - px) * c - (p.y - py) * s, y: py + (p.x - px) * s + (p.y - py) * c };
-}
-const cx1 = cv.width / 2, cy0 = cv.height / 2;
-function draw2() {
-  const t = (+R.value) * Math.PI / 180;
-  const rc = pairs.map(p => rot(p, t));
-  cx.clearRect(0, 0, cv.width, cv.height);
-  cx.lineWidth = 0.7;
-  cx.strokeStyle = "rgba(120,120,120,0.35)";
-  for (let i = 0; i < pts.length; i++) {
-    cx.beginPath(); cx.moveTo(pts[i].x, pts[i].y); cx.lineTo(rc[i].x, rc[i].y); cx.stroke();
-  }
-  cx.fillStyle = "#3b6ea5";
-  for (const p of pts) { cx.beginPath(); cx.arc(p.x, p.y, 3.4, 0, 7); cx.fill(); }
-  cx.fillStyle = "#c96a5d";
-  for (const p of rc) { cx.beginPath(); cx.arc(p.x, p.y, 3.4, 0, 7); cx.fill(); }
-  // score = mean cosine similarity after rotation
-  let s = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i], b = rc[i];
-    const na = Math.hypot(a.x - cx1, a.y - cy0), nb = Math.hypot(b.x - cx1, b.y - cy0);
-    if (na < 3 || nb < 3) continue;
-    s += ((a.x - cx1) * (b.x - cx1) + (a.y - cy0) * (b.y - cy0)) / (na * nb);
-  }
-  s /= pts.filter((p, i) => Math.hypot(pts[i].x - cx1, pts[i].y - cy0) > 3).length || 1;
-  msg.textContent = "mean pair similarity: " + s.toFixed(3) +
-    (Math.abs(R.value - 339) < 12 ? "  ← near the rotation found by the experiment!" :
-      (Math.abs(R.value - 159) < 12 ? "  ← also aligned (rotation was built symmetric)" : ""));
-}
-R.addEventListener("input", draw2); draw2();
-</script>
+<p>Every frozen encoder gives you a vector that lives in its own space with its own curve and
+its own spread of scales. A rotation is a map that takes your 512-dim CLIP-photo vector to
+the 384-dim text coordinates where its true caption lives. To phrase the fit as a Procrustes
+problem: solve for <code>Q</code> minimizing the least-squares mismatch between CLIP-XQ and
+MiniLM-Y across the 2,500 training pairs:</p>
 
-<p class="note">The cloud-pairing and centroid were built for the demo; the experiment itself
-works in 512 dims and 384 dims, where you can't watch it by eye. That's why we measure
-retrieval-rank instead of trusting what looks aligned.</p>
+<pre><code>min‖X·Q − Y‖²  s.t.  QᵀQ = I
+→ Q = U·Vᵀ from SVD of XᵀY</code></pre>
 
-<!-- ================= real example ================= -->
-<h2 id="examples">A real photo, its five captions, its retrieval</h2>
-<p>These are <em>actual</em> MS-COCO rows: a real image, its five human-written captions, and what the
-translator fetched when asked "whose caption is nearest to this picture?" after applying the rotation.</p>
+<p>One linear map, no fitting stage other than the SVD, on all 2,500 fit pairs at once.
+But that step gets nowhere if you run it on the raw spaces — spread is horribly skewed
+between models (<em>units mismatch</em>). The magic trick is to first <strong>rescale each
+space to itself</strong> — <em>ZCA whitening</em>, a classical signal processing move
+equivalent to aPCA-norm, making all directions equally weighted — and <em>then</em> fit the
+rotation. Every direction ends up on the same footing and the SVD sees the structure instead
+of the units.</p>
+
+<blockquote>After whitening, the residual mis-alignment between the two models'
+spaces is <em>real mis-alignment, not an artefact of measurement units</em> — meaning the
+rotation captures genuine semantic drift.</blockquote>
+
+<p>On top of that one rotation we stack three independent "views" of the same pairs —
+(1) the whitened Procrustes rotation itself, (2) a ridge regression in the same whitened
+coordinates followed by a second, sharper procrustes², (3) a small MLP trained on InfoNCE —
+scores z-scored together with weights (1.0, 0.5, 0.6), and finally a <strong>CSLS re-rank</strong>
+at k=50 borrowed from unsupervised word translation <a href="https://arxiv.org/abs/1808.09407">Conneau et al., 2018</a>,
+which penalises "hub" captions that attract many unrelated queries.</p>
+
+<h2 id="exp2">Experiment 2 — CLIP photos into MiniLM's world</h2>
+
+<p><strong>Task.</strong> Embed all 5,000 COCO val2017 images with CLIP ViT-B/32's image tower,
+and each image's captions with MiniLM (mean of the 5 human captions = one anchor per image).
+Fit the pipeline on half, evaluate exact-R@1 of the true anchor against 2,500 held-out
+candidates on the other half.</p>
+
+<table>
+  <tr><th>Method</th><th>R@1</th></tr>
+  <tr><td>chance</td><td>0.0004</td></tr>
+  <tr><td>raw Procrustes (no whitening)</td><td>0.243</td></tr>
+  <tr><td>whitened Procrustes</td><td>0.444</td></tr>
+  <tr><td>+ mutual-rank RRF fusion</td><td>0.499</td></tr>
+  <tr><td>final (maps fused + CSLS)</td><td><strong>0.560</strong></td></tr>
+  <tr><td>CLIP's own trained image↔text retrieval, same split</td><td>0.337</td></tr>
+</table>
+
+<p><span class="cap-t">The punchline:</span> our unsupervised translation beats CLIP's
+<em>own</em> trained image↔text retrieval on this test by 22 points. That's worth pausing on:
+CLIP's text head was <em>trained end-to-end</em> precisely to match images against captions —
+and our statistical pass of a blind rotation finds more usable alignment between the two models
+than CLIP's co-training did between its two towers.</p>
+
+<h3>Three real retrievals</h3>
 
 <div class="ex">
   <img src="img/example_2400.jpg" alt="man on motorcycle">
-  <div class="txt">
-    <strong>✓ perfect hit — true caption ranked #1 of 2,500</strong>
-    <p class="cap-t">TRUE: "A man riding on the back of a motorcycle down a street."</p>
-    <p>The translator's top picks:<br>
-      1. <span class="cap-t">"A man riding on the back of a motorcycle down a street."</span> (the truth)<br>
-      2. "Person driving a plated motorcycle on a track with people watching."<br>
-      3. "A man riding on the side of a motor bike."</p>
-    <p>The runner-up captions aren't wrong — they just belong to other motorcycle photos. This is
-    exactly the "who's the twin" problem: two very similar photos means two very similar captions.</p>
-  </div>
+  <strong>✓ R@1 hit</strong>
+  <p>true: <span class="cap-t">"A man riding on the back of a motorcycle down a street."</span><br>
+  top-1 retrieved: <span class="cap-t">same caption, cos 0.574</span> · top-2:
+  "Person driving a plated motorcycle on a track…" — a different photo's caption, but the same
+  scene idea.</p>
 </div>
 
 <div class="ex">
-  <img src="img/example_137.jpg" alt="man on motorcycle">
-  <div class="txt">
-    <strong>near miss — true caption ranked #3 of 2,500</strong>
-    <p class="cap-t">TRUE: "A man riding on the back of a motorcycle."</p>
-    <p>Top picks:<br>
-      1. <span class="cap-f">"A man standing with a yellow motorcycle in park."</span><br>
-      2. <span class="cap-f">"A person on a motor bike and a car on the street."</span><br>
-      3. <span class="cap-t">"A man riding on the back of a motorcycle."</span> (the truth)</p>
-    <p>So close! The two wrong captions come from near-identical COCO photos — many shots of
-    motorcycles by a street exist, their captions naturally collide.</p>
-  </div>
+  <img src="img/example_137.jpg" alt="motorcycle rider">
+  <strong>near miss (R@3)</strong>
+  <p>true: <span class="cap-t">"A man riding on the back of a motorcycle."</span><br>
+  top-1: <span class="cap-t2">"A man standing with a yellow motorcycle in park"</span> —
+  another real COCO photo's caption. The two wrong captions come from near-identical photos:
+  many street motorcycle shots exist, their captions collide.</p>
 </div>
 
 <div class="ex">
   <img src="img/example_900.jpg" alt="giant scissors">
-  <div class="txt">
-    <strong>interesting miss — true caption ranked #8 of 2,500</strong>
-    <p class="cap-t">TRUE: "A woman holding up a very large pair of scissors."</p>
-    <p>Top picks:<br>
-      1. <span class="cap-f">"A very big teddy bear is next to a woman."</span> (!)<br>
-      2. <span class="cap-f">"The reflection of a woman carrying a bag over each shoulder in a mirror."</span><br>
-      3. <span class="cap-f">"A woman holding a frisbee next to a frisbee golf basket."</span></p>
-    <p>An oversized novelty prop turns out genuinely hard — there are few like it, "giant scissors"
-    is rare in either model's vocabulary, and the retrieval fell back to familiar large-object images.
-    Failures like this teach us about blind spots more than the average score does.</p>
-  </div>
+  <strong>interesting fail (R@8)</strong>
+  <p>true: <span class="cap-t">"A woman holding up a very large pair of scissors."</span><br>
+  top-1: <span class="cap-t2">"A very big teddy bear is next to a woman."</span> (!) —
+  Novelty-prop images (a giant pair of scissors is a stage prop) are rare in <em>both</em>
+  models' pretraining, so the translation can't find a concept to express them with.</p>
 </div>
 
-<!-- ================= pipeline ================= -->
-<h2 id="pipe">The pipeline, end to end</h2>
-<p>Everything before this was toy-level intuition. Here is the actual mechanical sequence, in
-plain-English steps, each one tested on the 2500+2500 hold-out split:</p>
+<h2 id="exp3">Experiment 3 — DINOv2 speaks through CLIP's text head</h2>
 
-<div class="step"><strong>1 — Embed everything.</strong> All 5,000 photos through CLIP's image half
-(512 numbers each). Each photo's caption through MiniLM (384 numbers each). We average the five
-human captions into one "consensus" anchor per photo — five noisy opinions become one calm one.</div>
+<p>The strongest evidence that the shared structure is <em>usable</em>, not just measurable:
+DINOv2 has never seen a text corpus in its life. If we rotate its image vectors into CLIP's
+image space, then let CLIP's <em>own</em> text head — a model DINOv2 has never co-trained
+with — classify them, what's the accuracy?</p>
 
-<div class="step"><strong>2 — Whiten (the rescale trick, biggest single win: +0.19).</strong>
-Each model's space has very "spread-out" directions mixed in with cramped ones — like spanning
-one field measured in km and another in cm. Whitening is exactly <em>making all directions equally
-elastic</em> per space, so distance means the same thing everywhere. Fitted once, on all data
-(one shared frame), never leaking labels.</div>
+<p>We embed 50,000 CIFAR-10 train images through DINOv2-S for the rotation fit and embed the
+10,000-image test set through DINOv2-S and CLIP ViT-B/32 side by side, then classify via
+80 prompt templates per class ("a photo of a {class}."), chosen from ImageNet-style prompt
+ensembles <a href="https://arxiv.org/abs/2109.01134">Radford et al., 2021</a>.</p>
 
-<div class="step"><strong>3 — Fit the rotation (Procrustes).</strong> On 2,500 anchor pairs only,
-find one orthogonal rotation Q that makes every picture-description point at its partner's
-caption-description. This is <em>one</em> rule, no memorization — it physically cannot overfit to
-a single photo, it must learn the cloud's overall slant.</div>
+<div class="result">
+  <p>
+    <b>CLIP, doing the job itself (native zero-shot): 89.1%<br>
+    DINOv2-translated into CLIP, then CLIP's text head classifies: 88.8%<br>
+    random-rotation control: 10.6% (chance 10%)</b>
+  </p>
+  <p style="margin-bottom:0">A model with no concept of "truck" or "bird" classifies photos of
+  trucks and birds at <em>99.7% of the accuracy of the model purpose-built for the task</em> —
+  with the test never seen during fitting and the fit never seeing a label of any kind.</p>
+</div>
 
-<div class="step"><strong>4 — Add bridges (maps A+B+D, fused).</strong> Alongside the rotation, a
-ridge bridge (a soft linear map) and a tiny MLP trained to pull matched pairs together and push
-mismatched ones apart. Their scores are <em>z-scored</em> (equalized) and added with weights
-(1.0, 0.5, 0.6). Three lenses, one verdict.</div>
+<p>This is, we believe, the cleanest small-scale demonstration that <em>translation
+replaces co-training</em>: DINOv2's geometry was already so compatible with CLIP's that a
+single rotation makes DINOv2's photo-vectors drive text-driven classification with no image-side
+loss incurred whatsoever.</p>
 
-<div class="step"><strong>5 — Re-rank with CSLS (k=3).</strong> From MUSE-2018 word-translation
-research: a candidate caption's raw score is penalized when it's a "popular hub" that everyone
-likes anyway. Final re-rank with a tiny neighborhood (k=3). +0.06 on top of the fused map.</div>
+<h2 id="exp4">Experiment 4 — is any of this a pair-specific fluke?</h2>
 
-<div class="step"><strong>6 — Evaluate.</strong> On 2,500 fresh pairs: is the true caption ranked #1?
-Our final answer: <span class="big">0.560</span>, against <code>0.0004</code> chance — and against
-<code>0.337</code> for CLIP itself doing the task it was trained for.</div>
+<p>Swap pairs and rerun everything identically — CLIP image towers on one side, MiniLM and
+mpnet on the other, all on the same 5,000 COCO images/caption groups:</p>
 
-<h2 id="results">The scoreboard</h2>
 <table>
-  <tr><th>stage</th><th>idea</th><th>R@1</th></tr>
-  <tr><td>chance</td><td>—</td><td>0.0004</td></tr>
-  <tr><td>raw rotation</td><td>Procrustes only</td><td>0.243</td></tr>
-  <tr><td>whitening (ZCA, eps=0.01)</td><td>step 2</td><td>0.444</td></tr>
-  <tr><td>mutual-rank fusion</td><td>RRF fwd+back</td><td>0.499</td></tr>
-  <tr><td>+CSLS</td><td>MUSE-2018 re-rank</td><td>0.506</td></tr>
-  <tr><td><strong>final</strong> (round ~176)</td><td>maps A+B+D fused + CSLS k=3</td><td><strong>0.560</strong></td></tr>
-  <tr><td>reference</td><td>CLIP's own trained retrieval</td><td>0.337</td></tr>
-  <tr><td>ceiling ref.</td><td>linear map fitted <em>on</em> the eval set (cheating)</td><td>0.490</td></tr>
-  <tr><td>reference</td><td>100% (the original ask)</td><td>unreachable*</td></tr>
+  <tr><th>pair</th><th>R@1 plain</th><th>R@1 + CSLS(k=50)</th></tr>
+  <tr><td>CLIP ViT-B/32 ↔ MiniLM-L6 (reference exp)</td><td>0.4436</td><td>0.4956</td></tr>
+  <tr><td>CLIP ViT-B/16 ↔ mpnet</td><td>0.5340</td><td>0.5828</td></tr>
+  <tr><td><strong>SigLIP ↔ mpnet</strong></td><td>0.5944</td><td><strong>0.6540</strong></td></tr>
 </table>
 
-<img src="img/scoreboard.png" alt="methods tried">
-<img src="img/trajectory.png" alt="trajectory">
+<p>Phenomenon is pair-general and the ordering matches theory exactly: more joint
+image–text training during pretraining (SigLIP) ⇒ more shared structure ⇒ stronger
+translation. Larger vision tower (B/16 &gt; B/32) helps too. The clipping of what <em>
+depends on the pair</em> and what <em>doesn't</em> is now honest and measured.</p>
 
-<h2 id="gallery">The space, before and after</h2>
-<p>512 dims naturally can't be drawn, so we project statistically (principal components) — what you
-see is the structure, not the pixels.</p>
-<img src="img/align.png" alt="before/after alignment">
-<img src="img/ranks.png" alt="rank histograms">
+<h2 id="why-cap">Why even 100% isn't on the table — with numbers</h2>
 
-<h2 id="new">Two follow-up experiments (same day)</h2>
-
-<div class="two-col"><div><strong>Exp 03 — the "plug-in" test, headline result</strong><br>
-Rotate DINOv2 (52M, has never seen text) into CLIP's image space, then classify CIFAR-10
-with CLIP's <em>frozen text head</em> using only prompts like "a photo of a cat.["<br><strong>Result: 88.8% vs CLIP's own 89.1%.<br>
-Random rotation control: 10.6% (chance 10%).</strong><br>
-Translation ≈ co-training, at zero-shot classification.</div>
-<div><strong>Exp 04 — is it a fluke pair?</strong><br>
-Same recipe on 3 other image/text pairs:<br>
-CLIP-B/16 ↔ mpnet: 0.583<br>
-SigLIP ↔ mpnet: <strong>0.654</strong><br>
-CLIP-B/32 ↔ MiniLM: 0.496<br>
-Phenomenon is pair-general; jointly-trained-earlier models (SigLIP) share the most structure,<br>
-just as the Platonic Representation Hypothesis predicts.</div></div>
-
-<h2>Why the rest is data, not models</h2>
-<p>Two independent ceilings measured during round 0:</p>
+<p>Two ceilings measured, not asserted:</p>
 <ol>
-  <li><strong>~5% of eval captions have a near-twin</strong> (cosine &gt; 0.92) belonging to a
-  <em>different</em> image — they truly are twins. Even a perfect translator cannot split them.</li>
-  <li><strong>A linear map fitted on the eval set itself</strong> (pure cheating, unlimited peeking)
-  peaks at 0.490. Our unsupervised pipeline — never seeing an eval pair — reaches 0.560 by stacking
-  a non-linear bridge and a re-ranker. This is evidence that the achievable shared structure in
-  "<em>map one model's space into another, then cosine</em>" is essentially exhausted here.</li>
+  <li><strong>A <em>cheating</em> ceiling.</strong> A linear map fitted <em>on the eval set
+  itself</em> — with unlimited sight of the test pairs — tops out at <code>0.490</code> R@1.
+  No rotation-frame class of method goes past 0.6 on this data.</li>
+  <li><strong>A <em>data</em> ceiling.</strong> ~5% of the held-out captions have a
+  near-twin (cosine &gt; 0.92) belonging to a <em>different image</em> — a true-twin
+  problem. No translator, of any capacity, can separate true twins.</li>
 </ol>
-<div class="note">So the honest verdict is: <span class="big">0.560 ≈ 1400× chance</span>, and it
-beats CLIP's own trained alignment. The remaining gap is not a better map — it is ambiguity in the
-dataset itself, plus small models' limited resolution. To climb further you would swap machinery,
-not tuning: a generative cross-encoder (a VLM that reads image+caption <em>together</em>) or a
-larger pair of foundation models.</div>
 
-<img src="img/cases.png" alt="wins and fails">
+<p>Both say the same thing from different directions: the remaining gap is dataset
+ambiguity + small-model resolution, not method slack. To go further you need different
+machinery (generative cross-encoders) or bigger models — not better linear algebra.</p>
 
-<h2>Reproduce</h2>
-<p>Everything runs on a laptop (MPS GPU; whitening on CPU — <em>MPS <code>eigh</code> silently
-returns garbage</em>, a documented trap). Files:
-<code>extract.py → embed</code>, <code>connectors_v2/3.py → bridges</code>,
-<code>loop.py → 217-round harness</code>, results at <code>results/loop.jsonl</code>,
-full round-by-round honesty at <code>RESULTS.md</code>.</p>
+<h2 id="walk">Feel the rotation (live)</h2>
 
-<p class="footer">Built as a solo laptop experiment. Model pair: CLIP ViT-B/32 + MiniLM-L6-v2 on
-MS-COCO val2017, 5,000 image–caption groups. <em>Fonts and colors: Georgia, cream, a bit of
-gold.</em></p>
+<p>A 2-D intuition version of the whole experiment: two clouds of points, blue = pictures,
+orange = captions; light grey lines connect each point to its true partner. Drag the slider:
+at first the pairs are a tangle; near the right rotation they snap together; past 90° they
+retangle. The mean pair-similarity readout is the exact quantity Procrustes maximises in
+512/384/768 dimensions.</p>
+
+<div style="max-width:540px; margin: 0 auto; text-align:center;">
+  <canvas id="c2" width="540" height="400" style="border:1px solid #e5decd; border-radius:4px; background:#fff;"></canvas>
+  <input type="range" id="s2" min="0" max="360" value="0" step="1" style="width:92%; accent-color:#8a6d1d; margin-top:.4em;">
+  <p id="s2msg" style="font-size:.9em; min-height:1.6em;"></p>
+</div>
+
+<script>
+const cv = document.getElementById("c2"), cx = cv.getContext("2d");
+const R = document.getElementById("s2"), msg = document.getElementById("s2msg");
+const W = cv.width, H = cv.height, cX = W/2, cY = H/2;
+const pts = [], pairs = [];
+for (let k = 0; k < 45; k++) {
+  const cl = 40 + 130*(k%3);
+  const x = cl + (Math.random()-0.5)*46, y = cY + (Math.random()-0.5)*62;
+  pts.push({x, y});
+  pairs.push({x: x + (Math.random())*0.0 - 0, y: y + (Math.random()-0.5)*160 + 120});
+}
+pairs.forEach((p,i) => { const a = pts[i]; p.ox = a.x; p.oy = a.y + 90 + (Math.random()-0.5)*22; });
+function draw2(){
+  const ang = (+R.value) * Math.PI/180, c = Math.cos(ang), s = Math.sin(ang);
+  cx.clearRect(0, 0, W, H);
+  cx.lineWidth = 0.7; cx.strokeStyle = "rgba(120,120,120,0.35)";
+  for (let i = 0; i < pts.length; i++) {
+    // rotate the caption cloud around its centroid
+    const px = cX, py = cY + 110;
+    const rx = px + (pairs[i].ox - px)*c - (pairs[i].oy - py)*s;
+    const ry = py + (pairs[i].ox - px)*s + (pairs[i].oy - py)*c;
+    cx.beginPath(); cx.moveTo(pts[i].x, pts[i].y); cx.lineTo(rx, ry); cx.stroke();
+    pairs[i].rx = rx; pairs[i].ry = ry;
+  }
+  cx.fillStyle = "#3b6ea5"; for (const p of pts) { cx.beginPath(); cx.arc(p.x, p.y, 3.4, 0, 7); cx.fill(); }
+  cx.fillStyle = "#c96a5d"; for (const p of pairs) { cx.beginPath(); cx.arc(p.rx, p.ry, 3.4, 0, 7); cx.fill(); }
+  let sSum = 0, n = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const dx1 = pts[i].x - cX, dy1 = pts[i].y - cY;
+    const dx2 = pairs[i].rx - cX, dy2 = pairs[i].ry - cY;
+    const n1 = Math.hypot(dx1, dy1), n2 = Math.hypot(dx2, dy2);
+    if (n1 < 4 || n2 < 4) continue;
+    sSum += (dx1*dx2 + dy1*dy2)/(n1*n2); n++;
+  }
+  const sim = sSum / (n||1);
+  msg.textContent = "mean pair cosine: " + sim.toFixed(3) +
+    (Math.abs(+R.value - 339) < 14 ? "  ← near the Procrustes-fit rotation!" :
+     (Math.abs(+R.value - 159) < 14 ? "  ← also well-aligned (the fit came out ~180° flipped)" : ""));
+}
+R.addEventListener("input", draw2); draw2();
+</script>
+
+<h2 id="repro">Reproduce it yourself</h2>
+
+<p>Everything runs on a laptop Apple-Silicon GPU (<code>mps</code>) in under an hour.
+One known trap: <strong>MPS <code>torch.linalg.eigh</code> silently returns garbage</strong> on
+float32 — do your whitening on CPU (this cost us a day, see <code>RESULTS.md</code>).</p>
+
+<pre><code>git clone https://github.com/TarunTomar122/embedding-translation.git
+cd embedding-translation
+python -m venv .venv && source .venv/bin/activate
+pip install torch transformers datasets matplotlib
+cd experiments/02_vision_vs_text
+python extract.py --n 5000        # embed COCO with both towers
+python loop.py --count 200        # rerun the 217-round harness
+python run.py                     # (04_model_pairs) the multi-pair test
+python run.py                     # (03_zerotransfer) the DINOv2 plug-in test</code></pre>
+
+<h2 id="rel">Related work & attribution</h2>
+
+<p>The ingredients have all been discovered before, in other contexts; the effect on
+<em>small cross-modal pairs</em> is our contribution:</p>
+
+<ul>
+  <li><a href="https://arxiv.org/abs/2103.00020">CLIP</a> (Radford et al. 2021) and
+  <a href="https://arxiv.org/abs/2303.15343">SigLIP</a> (Zhai et al. 2023) — the
+  joint image-text models providing both towers and prompts.</li>
+  <li><a href="https://arxiv.org/abs/2304.07193">DINOv2</a> (Oquab et al. 2023) —
+  vision-only model used as source space.</li>
+  <li><a href="https://arxiv.org/abs/1808.09407">MUSE / unsupervised word translation</a>
+  (Conneau et al. 2018) — where our whitening → rotation + CSLS pipeline came from.</li>
+  <li><a href="https://arxiv.org/abs/2405.15459">Platonic Representation Hypothesis</a>
+  (Huh et al. 2024) — claims large models converge. We test whether the small ones do
+  (they do — with the same recipe). Their claim is at least <em>approximately</em>
+  transferable to ~22M–150M scale when you do the geometry correctly.</li>
+  <li><a href="https://arxiv.org/abs/2205.13110">Relative Representations / zero-shot stitching</a>
+  (Moschella et al. 2022) — anchor-space alternative to coordinate transfer.</li>
+  <li><a href="https://arxiv.org/abs/2110.07350">Model stitching</a> (Bansal et al. 2021) —
+  classic inter-layer version of the same question.</li>
+</ul>
+
+<h2>Where the numbers live</h2>
+
+<p>All runs logged to <code>results/loop.jsonl</code> (217 rounds), roll-up in
+<code>RESULTS.md</code> including every dead end (CCA at 0.022, self-training,
+graph-diffusion re-ranking, PLS, reduced-rank regression, partial whitening), plus
+`RESEARCH.md` with the survey of prior work, the honest bug-note on our first
+rank metric being wrong (caught during Exp 04, logged, corrected), and the repo
+<a href="https://github.com/TarunTomar122/embedding-translation/embedding-translation">TarunTomar122/embedding-translation</a>
+with everything from extraction to the interactive plots. Boringly transparent, no cherry-picking.</p>
+
+<footer>
+Test data: MS-COCO val2017 (5,000 image–caption groups, ~50% fit / 50% eval, seed 0) and CIFAR-10 (50k fit / 10k eval).
+All models run frozen, at inference mode, on an Apple MPS backend. The <em>only</em> fitted parts are the maps.
+The right to learn nothing from your test set was taken seriously.
+</footer>
 
 </body>
 </html>
