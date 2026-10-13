@@ -1,0 +1,30 @@
+[
+ {
+  "pair": "A_clipb32_vs_minilm",
+  "plain": 0.4436,
+  "csls10": 0.4696,
+  "csls50": 0.4956,
+  "csls150": 0.4784
+ },
+ {
+  "pair": "B_siglip_vs_mpnet",
+  "plain": 0.5944,
+  "csls10": 0.6364,
+  "csls50": 0.654,
+  "csls150": 0.6248
+ },
+ {
+  "pair": "C_clipb16_vs_minilm",
+  "plain": 0.534,
+  "csls10": 0.5644,
+  "csls50": 0.5828,
+  "csls150": 0.566
+ },
+ {
+  "pair": "D_clipb16_vs_mpnet",
+  "plain": 0.534,
+  "csls10": 0.5644,
+  "csls50": 0.5828,
+  "csls150": 0.566
+ }
+]

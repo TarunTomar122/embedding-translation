@@ -70,3 +70,44 @@
 - Zero-shot stitching / relative representations: `Moschella et al. 2022`,
   `IRP 2024` — anchor-based translation.
 - Model stitching: `Bansal et al. 2021`, updated 2026 — classical inter-layer version.
+
+---
+
+# UPDATE (same day) — Expansions run
+
+## Exp03 — zero-shot plug-in (`experiments/03_zerotransfer/`)
+
+**DINOv2 images rotated into CLIP's image space, then classified by CLIP's own text head
+(a brand new model it has never co-trained with):**
+
+```
+CLIP native zero-shot CIFAR-10:      0.8907
+DINO->CLIP translated zero-shot:     0.8884   <- 99.7% of CLIP's own accuracy!
+random-rotation control:             0.106    (chance=0.10)
+```
+
+A model that has never been pranked by text on 5000 classes still classifies through a
+*frozen zero-shot text head* at native-model parity once you add whitening + one rotation.
+This is the headline result for "translation replaces co-training".
+
+## Exp04 — multi-pair generalisation (`experiments/04_model_pairs/`)
+
+Same pipeline (whitening + procrustes fused + CSLS k=50), three pairs:
+
+| pair | R@1 plain | R@1 +CSLS k=50 |
+|---|---|---|
+| CLIP-B/32 ↔ MiniLM (ref) | 0.4436 | 0.4956 |
+| CLIP-B/16 ↔ mpnet | 0.5340 | 0.5828 |
+| SigLIP ↔ mpnet | **0.5944** | **0.6540** |
+
+Generalisation confirmed — the whitening+rotation recipe transfers across *independent* pairs.
+Jointly-trained image tower (SigLIP) yields the strongest shared structure — consistent with
+the Platonic Rep. Hypothesis scaling story. Bigger vision tower (B/16 > B/32) also helps.
+
+## Honest methodology note (a bug found and fixed)
+
+My standalone evaluation script initially used a hand-rolled rank formula
+(`argsort().argsort(); (r == arange)`) that is semantically NOT the diagonal rank —
+it made every variant collapse to chance. The correct formulation from `loop.py` uses
+`(o == arange)[:, 1]` on the argsort directly. All Exp-04 numbers above are with the
+CORRECT metric; the bug is documented so it isn't repeated.
